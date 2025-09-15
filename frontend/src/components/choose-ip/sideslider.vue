@@ -317,6 +317,24 @@
         }
       },
 
+      // 获取分级管理员/二级管理员详情
+      async fetchManagerDetail () {
+        try {
+          const url = ['rating_manager'].includes(this.user.role.type) ? 'role/getRatingManagerDetail' : 'spaceManage/getSecondManagerDetail';
+          const res = await this.$store.dispatch(url, { id: this.user.role.id });
+          const results = res.data || {};
+          const authorScopes = results.authorization_scopes || [];
+          if (authorScopes.length) {
+            this.isAny = authorScopes.some(item => ['*'].includes(item.system.id)
+              && item.actions.length === 1
+              && item.actions.some(scope => ['*'].includes(scope.id))
+            );
+          }
+        } catch (e) {
+          this.messageAdvancedError(e);
+        }
+      },
+
       async fetchAuthorizationScopeActions (id) {
         try {
           const { data } = await this.$store.dispatch(
@@ -325,6 +343,10 @@
           );
           // 判断是否是任意
           this.isAny = data && data.some(item => item.id === '*');
+          // 处理多租户分级管理员授权范围是*且授权范围接口数据存在问题，暂由前端先兼容处理
+          if (!data && !data.length < 1 && ['rating_manager', 'subset_manager'].includes(this.user.role.type)) {
+            this.fetchManagerDetail();
+          }
           if (this.params.actionsId && data.length) {
             const curActions = data.filter((item) => this.params.actionsId.includes(item.id));
             if (curActions.length) {
@@ -337,7 +359,6 @@
             }
           }
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },

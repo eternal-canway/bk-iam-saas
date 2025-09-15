@@ -4,9 +4,9 @@
     padding-bottom: 50px;
     .actions-wrapper {
         .bk-checkbox-text {
-            font-size: 12px;
             .text {
                 display: inline-block;
+                font-size: 12px;
                 max-width: 135px;
                 overflow: hidden;
                 text-overflow: ellipsis;
