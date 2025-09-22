@@ -27,7 +27,7 @@
 import http from '@/api';
 import { json2Query } from '@/common/util';
 
-const { BK_USER_WEB_APIGW_URL } = window;
+const { BK_USER_WEB_APIGW_URL, BK_COMPONENT_API_URL } = window;
 
 export default {
   namespaced: true,
@@ -41,7 +41,7 @@ export default {
        * @param {Object} state store state
        * @param {Function} dispatch store dispatch action handler
        * @param {Object} params 请求参数
-       * @param {Object?} config http config
+       * @param {Object} config http config
        *
        * @return {Promise} promise 对象
        */
@@ -56,12 +56,27 @@ export default {
        * @param {Object} state store state
        * @param {Function} dispatch store dispatch action handler
        * @param {Object} params 请求参数
-       * @param {Object?} config http config
+       * @param {Object} config http config
        *
        * @return {Promise} promise 对象
        */
     getTenantDisplayName ({ commit, state, dispatch }, params, config) {
       return http.get(`${BK_USER_WEB_APIGW_URL}/api/v3/open-web/tenant/users/-/display_info/?${json2Query(params)}`, { globalError: false });
+    },
+    
+    /**
+       * 多租户中英文语言切换接口
+       *
+       * @param {Function} commit store commit mutation handler
+       * @param {Object} state store state
+       * @param {Function} dispatch store dispatch action handler
+       * @param {Object} params 请求参数 apiName
+       * @param {Object} config http config
+       *
+       * @return {Promise} promise 对象
+       */
+    setTenantLocale ({ commit, state, dispatch }, params, config) {
+      return http.get(`${BK_COMPONENT_API_URL}/docs/api-docs/gateway/bk-user-web/?${json2Query(params)}`, { globalError: false });
     }
   }
 };

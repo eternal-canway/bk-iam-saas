@@ -619,7 +619,7 @@
           const apiName = 'update_current_user_language';
           const url = `${window.BK_COMPONENT_API_URL}${linkUrl}`;
           try {
-            await jsonpRequest(url, this.user.tenant_id ? { language, apiName } : { language });
+            this.user.tenant_id ? await this.$store.dispatch('tenantConfig/setTenantLocale', { apiName }) : await jsonpRequest(url, { language });
           } finally {
             window.location.reload();
           }
