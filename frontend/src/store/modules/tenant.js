@@ -27,7 +27,7 @@
 import http from '@/api';
 import { json2Query } from '@/common/util';
 
-const { BK_USER_WEB_APIGW_URL, BK_COMPONENT_API_URL } = window;
+const { BK_USER_WEB_APIGW_URL } = window;
 
 export default {
   namespaced: true,
@@ -76,7 +76,8 @@ export default {
        * @return {Promise} promise 对象
        */
     setTenantLocale ({ commit, state, dispatch }, params, config) {
-      return http.get(`${BK_COMPONENT_API_URL}/docs/api-docs/gateway/bk-user-web/?${json2Query(params)}`, { globalError: false });
+      const data = { ...params, globalError: false };
+      return http.put(`${BK_USER_WEB_APIGW_URL}/api/v3/open-web/tenant/current-user/language/`, data, config);
     }
   }
 };
