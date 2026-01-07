@@ -57,7 +57,7 @@ class DBUserSyncService(BaseSyncDBService):
         User.objects.bulk_create(created_users, batch_size=1000)
 
         # 移除待删除的用户
-        for ids in chunked([str(i.username) for i in created_users], 1000):
+        for ids in chunked([i.username for i in created_users], 1000):
             SubjectToDelete.objects.filter(subject_type=SubjectType.USER.value, subject_id__in=ids).delete()
 
     def updated_handler(self):
