@@ -2336,7 +2336,7 @@
   }
 
   .set-user-deadline {
-    padding: 0 24px;
+    padding: 16px 24px;
   }
 }
 
