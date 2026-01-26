@@ -3359,7 +3359,7 @@ paths:
                 resourcePermissionRequired: false
             disabledStages: [ ]
             descriptionEn:
-  /api/v1/open/subjects/{subject_type}/{subject_id}/groups/:
+  /api/v1/open/admin/subjects/{subject_type}/{subject_id}/groups/:
       get:
           operationId: admin_list_subject_group
           description: 超管获取Subject 加入的用户组列表
@@ -3375,7 +3375,7 @@ paths:
               backend:
                   type: HTTP
                   method: get
-                  path: /api/v1/open/subjects/{subject_type}/{subject_id}/groups/
+                  path: /api/v1/open/admin/subjects/{subject_type}/{subject_id}/groups/
                   matchSubpath: false
                   timeout: 0
                   upstreams: { }
