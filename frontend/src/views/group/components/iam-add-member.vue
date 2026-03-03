@@ -612,6 +612,8 @@
         hasSelectedManualDepartments: [],
         hasSelectedManualUsers: [],
         defaultTempIdList: [],
+        // 模糊匹配的时候不需要默认勾选；仅当精确匹配的时候才默认勾选的数据
+        exactSearchList: [],
         curId: 0,
         needMemberTempRoutes: ['userGroup', 'userGroupDetail', 'createUserGroup', 'cloneUserGroup'],
         regValue: /，|,|；|;|、|\\|\n|\s/
@@ -886,18 +888,19 @@
 
       fetchManualTableData () {
         this.$nextTick(() => {
-          this.manualTableList.forEach((item) => {
-            if (this.$refs.manualTableRef) {
+          if (this.$refs.manualTableRef) {
+            this.manualTableList.forEach((item) => {
               const hasSelectedUsers = [...this.hasSelectedUsers, ...this.hasSelectedManualUsers].map((v) => `${v.username}${v.name}`);
               const hasSelectedDepartments = [...this.hasSelectedDepartments, ...this.hasSelectedManualDepartments]
                 .map((v) => String(v.id));
+              item.checked = (hasSelectedUsers.includes(`${item.username}${item.name}`))
+                || (['depart', 'department'].includes(item.type) && hasSelectedDepartments.includes(String(item.id)));
               this.$refs.manualTableRef.toggleRowSelection(
                 item,
-                (hasSelectedUsers.includes(`${item.username}${item.name}`))
-                  || (['depart', 'department'].includes(item.type) && hasSelectedDepartments.includes(String(item.id)))
+                item.checked
               );
-            }
-          });
+            });
+          }
         });
       },
 
@@ -1007,6 +1010,30 @@
         this.manualInputError = false;
       },
 
+      // 处理首次解析并添加后仅当精确匹配的时候才默认勾选
+      getManualTableDefaultChecked () {
+        if (this.$refs.manualTableRef) {
+          const hasSelectedUsers = this.hasSelectedUsers.map((v) => `${v.username}${v.name}`);
+          const hasSelectedDepartments = this.hasSelectedDepartments.map((v) => `${v.name}&${v.id}`);
+          this.$nextTick(() => {
+            this.manualTableList.forEach((item) => {
+              // 只有精准匹配才默认勾选中
+              if (['depart', 'department'].includes(item.type)) {
+                item.checked = this.exactSearchList.some(ex => ex === item.name)
+                  || hasSelectedDepartments.includes(`${item.name}&${item.id}`);
+              } else {
+                item.checked = this.exactSearchList.some(ex => ex === item.username)
+                  || hasSelectedUsers.includes(`${item.username}${item.name}`);
+              }
+              this.$refs.manualTableRef.toggleRowSelection(
+                item,
+                item.checked
+              );
+            });
+          });
+        }
+      },
+
       // 处理同步异步操作数据
       async formatSearchData (data, curData) {
         if (data) {
@@ -1025,7 +1052,11 @@
                 }
                 return !isExistData;
               });
-              this.hasSelectedUsers.push(...userTemp);
+              // 筛选精确匹配的个人用户
+              const exactList = userTemp.filter(item =>
+                this.exactSearchList.some(ex => ex === item.username)
+              );
+              this.hasSelectedUsers.push(...exactList);
               this.hasSelectedManualUsers.push(...userTemp);
               // 保存原有格式
               let formatStr = _.cloneDeep(this.manualValue);
@@ -1071,8 +1102,12 @@
                 }
                 return !isExistData;
               });
+              // 筛选精确匹配的部门
+              const exactList = departTemp.filter(item =>
+                this.exactSearchList.some(ex => ex === item.name)
+              );
+              this.hasSelectedDepartments.push(...exactList);
               this.hasSelectedManualDepartments.push(...departTemp);
-              this.hasSelectedDepartments.push(...departTemp);
               // 备份一份粘贴板里的内容，清除组织的数据，在过滤掉组织的数据
               let clipboardValue = _.cloneDeep(this.manualValue);
               // 处理不相连的数据之间存在特殊符号的情况
@@ -1105,7 +1140,6 @@
               });
             }
           } catch (e) {
-            console.error(e);
             this.messageAdvancedError(e);
           }
         }
@@ -1115,17 +1149,18 @@
       async handleAddManualUser () {
         this.fetchRegOrgData();
         this.manualAddLoading = true;
+        this.hasExistOrgData = [];
+        this.exactSearchList = this.filterUserList.map((item) => {
+          return getUsername(item);
+        });
         try {
           const url = this.isRatingManager ? 'role/queryRolesUsers' : 'organization/verifyManualUser';
           const res = await this.$store.dispatch(url, {
-            usernames: this.filterUserList.map((item) => {
-              return getUsername(item);
-            })
+            usernames: this.exactSearchList
           });
-          this.hasExistOrgData = [];
           const hasSelectedUsers = this.hasSelectedUsers.map((item) => item.username);
           const defaultUsers = this.defaultUsers.map((item) => item.id);
-          const temps = res.data.filter((item) => {
+          let temps = res.data.filter((item) => {
             this.$set(item, 'type', 'user');
             this.$set(item, 'full_name', item.departments && item.departments.length ? item.departments.join(';') : '');
             const isExistName = [...defaultUsers, ...hasSelectedUsers].includes(item.username);
@@ -1134,7 +1169,15 @@
             }
             return !isExistName;
           });
-          this.hasSelectedUsers.push(...temps);
+          // 筛选精确匹配的个人用户
+          const exactList = temps.filter(item =>
+            this.exactSearchList.some(ex => ex === item.username)
+          );
+          // 处理表格模糊搜索已有数据未勾选和选中数据重合
+          temps = temps.filter(item =>
+            !this.hasSelectedManualUsers.map((subItem) => `${subItem.username}${subItem.name}`).includes(`${item.username}${item.name}`)
+          );
+          this.hasSelectedUsers.push(...exactList);
           this.hasSelectedManualUsers.push(...temps);
           if (res.data.length) {
             this.usernameList = res.data.map((item) => item.username);
@@ -1184,10 +1227,10 @@
             this.handleGetUniqueName();
           }
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         } finally {
           this.manualAddLoading = false;
+          this.getManualTableDefaultChecked();
         }
       },
 
@@ -1475,9 +1518,7 @@
           });
           this.treeList = _.cloneDeep(departments);
         } catch (e) {
-          console.error(e);
-          const { code } = e;
-          this.emptyData = formatCodeData(code, this.emptyData);
+          this.emptyData = formatCodeData(e.code, this.emptyData);
           this.messageAdvancedError(e);
         } finally {
           this.treeLoading = false;
@@ -1550,9 +1591,7 @@
           });
           this.treeList = _.cloneDeep(categories);
         } catch (e) {
-          console.error(e);
-          const { code } = e;
-          this.emptyData = formatCodeData(code, this.emptyData);
+          this.emptyData = formatCodeData(e.code, this.emptyData);
           this.messageAdvancedError(e);
         } finally {
           this.treeLoading = false;
@@ -1699,9 +1738,7 @@
           this.emptyData.tipType = 'search';
           this.emptyData = formatCodeData(code, this.emptyData, isEmpty);
         } catch (e) {
-          console.error(e);
-          const { code } = e;
-          this.emptyData = formatCodeData(code, this.emptyData);
+          this.emptyData = formatCodeData(e.code, this.emptyData);
           this.messageAdvancedError(e);
         } finally {
           this.treeLoading = false;
@@ -1826,7 +1863,6 @@
           }
           payload.children.splice(0, payload.children.length, ...loadChildren);
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         } finally {
           setTimeout(() => {
@@ -2030,7 +2066,7 @@
 
       fetchSelectedGroups (type, payload, row) {
         const typeMap = {
-          multiple: async () => {
+          multiple: () => {
             const isChecked = payload.length && payload.indexOf(row) !== -1;
             if (['depart', 'department'].includes(row.type)) {
               if (isChecked) {
@@ -2039,11 +2075,18 @@
                 if (hasSelectedDepart.length) {
                   hasSelectedDepartIds = hasSelectedDepart.map((v) => String(v.id));
                 }
-                if (!hasSelectedDepartIds.includes(String(row.id))) {
+                // 如果表格里已经存在该部门了，就不再添加到已选部门里了
+                const isExistDepart = hasSelectedDepartIds.includes(String(row.id)) && !row.checked;
+                if (isExistDepart) {
+                  row.checked = true;
+                  this.hasSelectedDepartments.push(row);
+                } else {
+                  row.checked = true;
                   this.hasSelectedDepartments.push(row);
                   this.hasSelectedManualDepartments.push(row);
                 }
               } else {
+                row.checked = false;
                 this.hasSelectedDepartments = this.hasSelectedDepartments.filter(
                   (item) => item.id.toString() !== row.id.toString()
                 );
@@ -2059,11 +2102,18 @@
                 if (hasSelectedUsers.length) {
                   hasSelectedUsersIds = hasSelectedUsers.map((v) => `${v.username}${v.name}`);
                 }
-                if (!hasSelectedUsersIds.includes(`${row.username}${row.name}`)) {
+                // 如果表格里已经存在该用户了，就不再添加到已选用户里了
+                const isExistUser = hasSelectedUsersIds.includes(`${row.username}${row.name}`) && !row.checked;
+                if (isExistUser) {
+                  row.checked = true;
+                  this.hasSelectedUsers.push(row);
+                } else {
+                  row.checked = true;
                   this.hasSelectedUsers.push(row);
                   this.hasSelectedManualUsers.push(row);
                 }
               } else {
+                row.checked = false;
                 this.hasSelectedUsers = this.hasSelectedUsers.filter(
                   (item) => `${item.username}${item.name}` !== `${row.username}${row.name}`
                 );
@@ -2073,7 +2123,7 @@
               }
             }
           },
-          all: async () => {
+          all: () => {
             const isAllCheck = payload.length > 0;
             this.manualTableList.forEach((item) => {
               if (['depart', 'department'].includes(item.type)) {
@@ -2083,11 +2133,17 @@
                   if (hasSelectedDepart.length) {
                     hasSelectedDepartIds = hasSelectedDepart.map((v) => String(v.id));
                   }
-                  if (!hasSelectedDepartIds.includes(String(item.id))) {
+                  const isExistDepart = hasSelectedDepartIds.includes(String(item.id)) && !item.checked;
+                  if (isExistDepart) {
+                    item.checked = true;
+                    this.hasSelectedDepartments.push(item);
+                  } else {
+                    item.checked = true;
                     this.hasSelectedDepartments.push(item);
                     this.hasSelectedManualDepartments.push(item);
                   }
                 } else {
+                  item.checked = false;
                   this.hasSelectedDepartments = this.hasSelectedDepartments.filter(
                     (v) => item.id.toString() !== v.id.toString()
                   );
@@ -2103,11 +2159,17 @@
                   if (hasSelectedUsers.length) {
                     hasSelectedUsersIds = hasSelectedUsers.map((v) => `${v.username}${v.name}`);
                   }
-                  if (!hasSelectedUsersIds.includes(`${item.username}${item.name}`)) {
+                  const isExistUser = hasSelectedUsersIds.includes(`${item.username}${item.name}`) && !item.checked;
+                  if (isExistUser) {
+                    item.checked = true;
+                    this.hasSelectedUsers.push(item);
+                  } else {
+                    item.checked = true;
                     this.hasSelectedUsers.push(item);
                     this.hasSelectedManualUsers.push(item);
                   }
                 } else {
+                  item.checked = false;
                   this.hasSelectedUsers = this.hasSelectedUsers.filter(
                     (v) => `${item.username}${item.name}` !== `${v.username}${v.name}`
                   );
