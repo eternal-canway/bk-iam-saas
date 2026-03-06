@@ -746,9 +746,8 @@
         this.$nextTick(() => {
           this.manualTableList.forEach((item) => {
             if (this.$refs.manualTableRef) {
-              const hasSelectedUsers = [...this.hasSelectedUsers, ...this.hasSelectedManualUsers].map((v) => `${v.username}${v.name}`);
-              const hasSelectedDepartments = [...this.hasSelectedDepartments, ...this.hasSelectedManualDepartments]
-                .map((v) => String(v.id));
+              const hasSelectedUsers = [...this.hasSelectedUsers].map((v) => `${v.username}${v.name}`);
+              const hasSelectedDepartments = [...this.hasSelectedDepartments].map((v) => String(v.id));
               this.$refs.manualTableRef.toggleRowSelection(
                 item,
                 (hasSelectedUsers.includes(`${item.username}${item.name}`))
@@ -867,6 +866,18 @@
               } else {
                 item.checked = this.exactSearchList.some(ex => ex === item.username)
                   || hasSelectedUsers.includes(`${item.username}${item.name}`);
+              }
+              // 同步更新组织架构已选择的数据，取消勾选时需要从已选择的数据中去掉
+              if (!item.checked) {
+                if (['depart', 'department'].includes(item.type)) {
+                  this.hasSelectedManualDepartments = this.hasSelectedManualDepartments.filter((depart) =>
+                    `${depart.name}&${depart.id}` !== `${item.name}&${item.id}`
+                  );
+                } else {
+                  this.hasSelectedManualUsers = this.hasSelectedManualUsers.filter((user) =>
+                    `${user.username}${user.name}` !== `${item.username}${item.name}`
+                  );
+                }
               }
               this.$refs.manualTableRef.toggleRowSelection(
                 item,
