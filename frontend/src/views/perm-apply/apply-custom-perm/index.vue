@@ -3,7 +3,7 @@
   <div>
     <!-- 申请自定义权限正常跳转 -->
     <smart-action class="biz-perm-apply" v-if="!isNoPermApply && !isNoPermissionsSet">
-      <render-horizontal-block :label="$t(`m.permApply['选择权限获得者']`)" :required="false">
+      <render-horizontal-block :label="$t(`m.permApply['选择权限获得者']`)" :required="true">
         <section ref="permRecipientRef">
           <IamUserSelector
             v-model="permMembers"
@@ -14,7 +14,7 @@
             @blur="handleRtxBlur"
             @change="handleRtxChange"
           />
-          <!-- <p class="perm-recipient-error" v-if="isShowMemberError">{{ $t(`m.permApply['请选择权限获得者']`) }}</p> -->
+          <p class="perm-recipient-error" v-if="isShowMemberError">{{ $t(`m.permApply['请选择权限获得者']`) }}</p>
         </section>
       </render-horizontal-block>
       <render-horizontal-block :required="true" ext-cls="apply-way-wrapper" :label="$t(`m.permApply['选择操作']`)">
@@ -835,7 +835,7 @@
       // 查找权限获得者是不是只是当前登录的成员
       isLoginSelf () {
         if (!this.permMembers.length) {
-          return true;
+          return false;
         }
         return this.permMembers.every(item => item === this.user.username);
       }
@@ -964,7 +964,7 @@
       },
 
       async handleRtxChange (payload) {
-        this.isShowMemberError = false;
+        this.isShowMemberError = payload.length < 1;
         this.permMembers = [...payload];
         await this.fetchSystemActions(this.systemValue);
       },
@@ -2466,7 +2466,12 @@
         let actions = tableData.actions;
         let recommendActions = [];
         let recommendFlag = false;
-                
+        // 默认权限申请页权限获得者至少选择一项
+        if (!this.permMembers.length && (!this.isNoPermApply && !this.isNoPermissionsSet)) {
+          this.isShowMemberError = true;
+          this.scrollToLocation(this.$refs.permRecipientRef);
+          return;
+        }
         if (this.$refs.resInstanceRecommendTableRef) {
           const tableRecommendData = this.$refs.resInstanceRecommendTableRef.handleGetValue();
           recommendActions = tableRecommendData.actions;
@@ -2500,11 +2505,6 @@
             return;
           }
         }
-        // if (!this.permMembers.length) {
-        // this.isShowMemberError = true;
-        // this.scrollToLocation(this.$refs.permRecipientRef);
-        // return;
-        // }
         const curSystem = this.systemList.find(item => item.id === this.systemValue);
         const params = {
           system: {
