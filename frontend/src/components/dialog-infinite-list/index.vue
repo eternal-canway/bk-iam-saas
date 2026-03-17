@@ -41,13 +41,32 @@
               }
             )"
             :class="['node-item-name', 'organization-name', { 'is-disabled': disabledNode(item) }]">
+            <template v-if="showFullName">
+              <div class="node-full-name-box">
+                <IamUserDisplayName
+                  class="node-full-name"
+                  :user-id="item.name"
+                  :tooltip-config="{ placement: 'right-start', disabled: Boolean(item.full_name) }"
+                />
+                <div
+                  v-if="item.showCount && enableOrganizationCount"
+                  class="node-user-count"
+                >
+                  {{ '(' + item.count + `)` }}
+                </div>
+              </div>
+              <div class="extra-full-name">
+                {{ item.full_name }}
+              </div>
+            </template>
             <IamUserDisplayName
+              v-else
               :user-id="item.name"
-              :tooltip-config="{ placement: 'right-start', disabled: !!item.full_name }"
+              :tooltip-config="{ placement: 'right-start', disabled: Boolean(item.full_name) }"
             />
           </div>
           <span
-            v-if="item.showCount && enableOrganizationCount"
+            v-if="item.showCount && enableOrganizationCount && !showFullName"
             v-bk-tooltips="getToolTip(
               item,
               {
@@ -97,9 +116,22 @@
             )"
             :class="['node-item-name', 'user-name', { 'is-disabled': disabledNode(item) }]"
           >
+            <template v-if="showFullName">
+              <div class="node-full-name-box">
+                <IamUserDisplayName
+                  class="node-full-name"
+                  :user-id="item.username || item.name"
+                  :tooltip-config="{ placement: 'right-start', disabled: Boolean(item.full_name) }"
+                />
+              </div>
+              <div class="extra-full-name">
+                {{ item.full_name }}
+              </div>
+            </template>
             <IamUserDisplayName
+              v-else
               :user-id="item.username || item.name"
-              :tooltip-config="{ placement: 'right-start', disabled: !!item.full_name }"
+              :tooltip-config="{ placement: 'right-start', disabled: Boolean(item.full_name) }"
             />
           </div>
         </div>
@@ -137,6 +169,11 @@
       },
 
       isDisabled: {
+        type: Boolean,
+        default: false
+      },
+      // 是否显示完整组织架构
+      showFullName: {
         type: Boolean,
         default: false
       },
@@ -503,6 +540,29 @@
           color: #3a84ff;
         }
       }
+      .node-full-name-box {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        .node-full-name {
+          min-width: 10px;
+          line-height: 28px;
+          flex-shrink: 1;
+          flex-grow: 0;
+        }
+        .node-user-count {
+          flex-shrink: 0;
+          margin-left: 4px;
+          white-space: nowrap;
+        }
+      }
+      .extra-full-name {
+        line-height: 20px;
+        font-size: 14px;
+        color: #999999;
+        white-space: normal;
+        word-break: break-all;
+      }
       .node-user-count {
         color: #c4c6cc;
       }
@@ -511,7 +571,8 @@
         color: #3a84ff;
         background: #eef4ff;
         .node-icon,
-        .node-user-count {
+        .node-user-count,
+        .extra-full-name {
           color: #3a84ff;
         }
       }
@@ -520,7 +581,8 @@
         background-color: transparent;
         cursor: not-allowed;
         .node-icon,
-        .node-user-count {
+        .node-user-count,
+        .extra-full-name {
           color: #c4c6cc;
         }
         &:hover {
