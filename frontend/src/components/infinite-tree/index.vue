@@ -56,7 +56,7 @@
             { 'node-selected': item.isSelected && !item.disabled }
           ]"
         >
-          <template v-if="showFullName">
+          <template v-if="showFullName && Boolean(item.full_name)">
             <div class="node-full-name-box">
               <IamUserDisplayName
                 class="node-full-name"
