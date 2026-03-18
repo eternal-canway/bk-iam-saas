@@ -113,6 +113,7 @@
                       :is-rating-manager="curIsRatingManager"
                       :key="infiniteTreeKey"
                       :is-disabled="isAll"
+                      show-full-name
                       :empty-data="emptyData"
                       :has-selected-users="formatAllSelectedUsers"
                       :has-selected-departments="formatAllSelectedDeparts"
@@ -131,6 +132,7 @@
                       <dialog-infinite-list
                         ref="searchedResultsRef"
                         style="height: 400px"
+                        show-full-name
                         :all-data="searchedResult"
                         :focus-index.sync="focusItemIndex"
                         :is-disabled="isAll"
