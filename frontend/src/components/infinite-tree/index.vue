@@ -70,7 +70,7 @@
                 {{ '(' + item.count + `)` }}
               </div>
             </div>
-            <div class="extra-full-name">
+            <div v-if="item.full_name" class="extra-full-name">
               {{ item.full_name }}
             </div>
           </template>
