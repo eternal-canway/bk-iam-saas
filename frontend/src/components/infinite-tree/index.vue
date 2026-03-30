@@ -17,7 +17,8 @@
           v-if="item.async"
           class="arrow-icon"
           :type="item.expanded ? 'down-shape' : 'right-shape'"
-          @click.stop="expandNode(item)" />
+          @click.stop="expandNode(item)"
+        />
         <div class="node-radio" v-if="item.showRadio">
           <span class="node-checkbox"
             :class="{
@@ -45,23 +46,44 @@
           type="personal-user"
           :class="['node-icon', { 'active': item.isSelected && !item.disabled }]"
         />
-        <!-- eslint-disable max-len -->
         <div
           v-bk-tooltips="getToolTipData(item, {
             disabled: !item.full_name
           })"
           :style="nameStyle(item)"
-          :class="['node-title', { 'node-selected': item.isSelected && !item.disabled }]"
+          :class="[
+            'node-title',
+            { 'node-selected': item.isSelected && !item.disabled }
+          ]"
         >
+          <template v-if="showFullName && Boolean(item.full_name)">
+            <div class="node-full-name-box">
+              <IamUserDisplayName
+                class="node-full-name"
+                :user-id="item.username || item.name"
+                :tooltip-config="{ placement: 'right-start', disabled: Boolean(item.full_name) }"
+              />
+              <div
+                v-if="item.showCount && enableOrganizationCount"
+                class="node-user-count"
+              >
+                {{ '(' + item.count + `)` }}
+              </div>
+            </div>
+            <div v-if="item.full_name" class="extra-full-name">
+              {{ item.full_name }}
+            </div>
+          </template>
           <IamUserDisplayName
+            v-else
             style="width: 100%"
             :user-id="item.username || item.name"
             :tooltip-config="{ placement: 'right-start', disabled: Boolean(item.full_name) }"
           />
         </div>
-        <span class="red-dot" v-if="item.isNewMember"></span>
+        <span class="red-dot" v-if="item.isNewMember" />
         <span
-          v-if="item.showCount && enableOrganizationCount"
+          v-if="item.showCount && enableOrganizationCount && !showFullName"
           class="node-user-count"
         >
           {{ '(' + item.count + `)` }}
@@ -135,6 +157,11 @@
         type: Boolean,
         default: true
       },
+      // 是否显示完整组织架构
+      showFullName: {
+        type: Boolean,
+        default: false
+      },
       // 根据状态码渲染落地空内容
       emptyData: {
         type: Object,
@@ -200,7 +227,7 @@
               otherOffset += 14;
           }
           return {
-              'maxWidth': `calc(100% - ${otherOffset}px)`
+              'maxWidth': !payload.level ? '100%' : `calc(100% - ${otherOffset}px)`
           };
         };
       },
@@ -517,11 +544,31 @@
       position: relative;
       display: inline-block;
       min-width: 14px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
       vertical-align: top;
       user-select: none;
+      .node-full-name-box {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        .node-full-name {
+          min-width: 50px;
+          flex-shrink: 1;
+          flex-grow: 0;
+        }
+        .node-user-count {
+          flex-shrink: 0;
+          margin-left: 4px;
+          white-space: nowrap;
+        }
+      }
+      .extra-full-name {
+        padding-bottom: 8px;
+        line-height: 20px;
+        font-size: 14px;
+        color: #999999;
+        white-space: normal;
+        word-break: break-all;
+      }
     }
     .node-user-count {
       color: #c4c6cc;
@@ -596,7 +643,8 @@
       color: #3a84ff;
       background-color: #eef4ff;
       .node-icon,
-      .node-user-count {
+      .node-user-count,
+      .extra-full-name {
         color: #3a84ff;
       }
     }
@@ -605,7 +653,8 @@
       background-color: transparent;
       cursor: not-allowed;
       .node-icon,
-      .node-user-count {
+      .node-user-count,
+      .extra-full-name {
         color: #c4c6cc;
       }
       &:hover {
