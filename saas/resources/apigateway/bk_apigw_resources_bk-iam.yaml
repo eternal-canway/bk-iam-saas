@@ -3361,7 +3361,7 @@ paths:
             descriptionEn:
   /api/v1/open/admin/subjects/{subject_type}/{subject_id}/groups/:
       get:
-          operationId: admin_list_subject_group
+          operationId: admin_list_subject_groups
           description: 超管获取Subject 加入的用户组列表
           tags:
               - open
