@@ -66,11 +66,11 @@
                 {{ $t(`m.common['取消']`) }}
               </bk-button>
             </template>
-            <template v-else-if="row.user[0] === 'admin'">
+            <template v-else-if="row.user[0].includes('admin')">
               <bk-button
                 theme="primary"
                 text
-                :disabled="row.user[0] === 'admin'">
+                :disabled="row.user[0].includes('admin')">
                 {{ $t(`m.common['删除']`) }}
               </bk-button>
             </template>
