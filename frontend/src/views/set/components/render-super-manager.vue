@@ -67,12 +67,14 @@
               </bk-button>
             </template>
             <template v-else-if="row.user[0].includes('admin')">
-              <bk-button
-                theme="primary"
-                text
-                :disabled="row.user[0].includes('admin')">
-                {{ $t(`m.common['删除']`) }}
-              </bk-button>
+              <bk-popover :content="$t(`m.set['超级管理员{name}不可删除']`, { name: row.user[0] })" placement="top">
+                <bk-button
+                  theme="primary"
+                  text
+                  :disabled="row.user[0].includes('admin')">
+                  {{ $t(`m.common['删除']`) }}
+                </bk-button>
+              </bk-popover>
             </template>
             <template v-else>
               <iam-popover-confirm
