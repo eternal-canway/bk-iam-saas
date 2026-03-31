@@ -187,6 +187,7 @@
       @on-after-leave="handlerPreviewDialogClose" />
 
     <render-aggregate-side-slider
+      ref="aggregateRef"
       :show.sync="isShowAggregateSideSlider"
       :params="aggregateResourceParams"
       :value="aggregateValue"
@@ -532,7 +533,8 @@
         const aggregateResourceData = data.aggregateResourceType[data.selectedIndex];
         const aggregateResourceParams = {
           ...aggregateResourceData,
-          curAggregateSystemId: data.system_id
+          curAggregateSystemId: data.system_id,
+          isNoLimited: data.isNoLimited || false
         };
         if (!data.instancesDisplayData[aggregateResourceData.id]) {
           data.instancesDisplayData[aggregateResourceData.id] = [];
@@ -547,10 +549,8 @@
         this.instanceKey = aggregateResourceData.id;
         this.aggregateResourceParams = _.cloneDeep(aggregateResourceParams);
         this.aggregateIndex = !this.curFilterSystem ? index : this.tableList.findIndex(item => `${item.system_id}-${item.$id}` === this.curFilterSystem);
-        const instanceKey = data.aggregateResourceType[data.selectedIndex].id;
-        this.instanceKey = instanceKey;
-        if (!data.instancesDisplayData[instanceKey]) data.instancesDisplayData[instanceKey] = [];
-        this.aggregateValue = _.cloneDeep(data.instancesDisplayData[instanceKey].map(item => {
+        if (!data.instancesDisplayData[this.instanceKey]) data.instancesDisplayData[this.instanceKey] = [];
+        this.aggregateValue = _.cloneDeep(data.instancesDisplayData[this.instanceKey].map(item => {
           return {
             id: item.id,
             display_name: item.name
@@ -567,24 +567,46 @@
             name: item.display_name
           };
         });
-        this.tableList[this.aggregateIndex].isError = false;
-        this.selectedIndex = this.tableList[this.aggregateIndex].selectedIndex;
-        const instanceKey = this.tableList[this.aggregateIndex].aggregateResourceType[this.selectedIndex].id;
-        const instancesDisplayData = _.cloneDeep(this.tableList[this.aggregateIndex].instancesDisplayData);
-        this.tableList[this.aggregateIndex].instancesDisplayData = {
-                    ...instancesDisplayData,
-                    [instanceKey]: instances
+        const curAggregateItem = this.tableList[this.aggregateIndex];
+        curAggregateItem.isError = false;
+        this.selectedIndex = curAggregateItem.selectedIndex;
+        const instanceKey = curAggregateItem.aggregateResourceType[this.selectedIndex].id;
+        const instancesDisplayData = curAggregateItem.instancesDisplayData;
+        curAggregateItem.instancesDisplayData = {
+          ...instancesDisplayData,
+          [instanceKey]: instances
         };
-        this.tableList[this.aggregateIndex].instances = [];
-
-        for (const key in this.tableList[this.aggregateIndex].instancesDisplayData) {
-          // eslint-disable-next-line max-len
-          this.tableList[this.aggregateIndex].instances.push(...this.tableList[this.aggregateIndex].instancesDisplayData[key]);
+        curAggregateItem.instances = [];
+        for (const key in curAggregateItem.instancesDisplayData) {
+          curAggregateItem.instances.push(...curAggregateItem.instancesDisplayData[key]);
         }
+        const conditionData = this.$refs.aggregateRef.handleGetValue();
+        const { isEmpty, data } = conditionData;
+        if (isEmpty) {
+          return;
+        }
+        const isConditionEmpty = data.length === 1 && data[0] === 'none';
+        if (isConditionEmpty) {
+          curAggregateItem.instances = ['none'];
+          curAggregateItem.isLimitExceeded = false;
+          curAggregateItem.isError = true;
+          curAggregateItem.isNoLimited = false;
+        } else {
+          // data和isEmpty都为false代表是无限制
+          const isNoLimited = !isEmpty && !data.length;
+          curAggregateItem.instances = data;
+          curAggregateItem.isError = !(isNoLimited || data.length);
+          if (curAggregateItem.aggregateResourceType.length > 1) {
+            curAggregateItem.isNoLimited = curAggregateItem.instancesDisplayData[instanceKey].length < 1 && isNoLimited;
+          } else {
+            curAggregateItem.isNoLimited = isNoLimited;
+          }
+        }
+        const aggregationPolicy = new GradeAggregationPolicy({ ...curAggregateItem, ...{ isNeedNoLimited: true } });
         this.$set(
           this.tableList,
           this.aggregateIndex,
-          new GradeAggregationPolicy(this.tableList[this.aggregateIndex])
+          aggregationPolicy
         );
         this.$emit('on-select', this.tableList[this.aggregateIndex]);
       },
