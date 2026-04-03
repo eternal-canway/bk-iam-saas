@@ -70,7 +70,7 @@
                 {{ '(' + item.count + `)` }}
               </div>
             </div>
-            <div v-if="item.full_name" class="extra-full-name">
+            <div v-if="item.full_name" class="single-hide extra-full-name">
               {{ item.full_name }}
             </div>
           </template>
@@ -566,7 +566,6 @@
         line-height: 20px;
         font-size: 14px;
         color: #999999;
-        white-space: normal;
         word-break: break-all;
       }
     }
