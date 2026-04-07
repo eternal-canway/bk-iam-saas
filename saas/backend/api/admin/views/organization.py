@@ -31,7 +31,7 @@ class AdminOrganizationSyncViewSet(GenericViewSet):
     }
 
     @swagger_auto_schema(
-        operation_description="触发组织架构同步（可选设置同步周期）",
+        operation_description="触发组织架构同步",
         request_body=AdminOrganizationSyncConfigSLZ(label="同步配置"),
         responses={status.HTTP_200_OK: AdminOrganizationSyncResultSLZ(label="同步结果")},
         tags=["admin.organization"],
@@ -41,48 +41,31 @@ class AdminOrganizationSyncViewSet(GenericViewSet):
         slz = AdminOrganizationSyncConfigSLZ(data=request.data)
         slz.is_valid(raise_exception=True)
 
-        sync_period = slz.validated_data.get("sync_period")
-        data = {"sync_message": "组织架构同步任务已触发"}
-        if sync_period:
-            schedule_params = {
-                "day_of_week": "*",
-                "day_of_month": "*",
-                "month_of_year": "*",
-                "timezone": settings.CELERY_TIMEZONE,
-            }
-            # 根据时间间隔设置不同的调度策略
-            if sync_period < 3600:
-                schedule_params.update({"minute": f"*/{sync_period // 60}", "hour": "*"})
-            elif sync_period < 86400:
-                schedule_params.update({"minute": "0", "hour": f"*/{sync_period // 3600}"})
-            else:
-                days = sync_period // 86400
-                schedule_params.update({
-                    "minute": "0", 
-                    "hour": "0",
-                    "day_of_month": "*" if days == 1 else f"*/{days}"
-                })
-            # 获取或创建定时任务
+        sync_crontab = slz.validated_data.get("sync_crontab")
+        data = {"sync_message": "The organization structure synchronization task has been triggered"}
+        if sync_crontab:
             task_name = "periodic_sync_organization"
-            periodic_task, created = PeriodicTask.objects.get_or_create(
+            schedule, _ = CrontabSchedule.objects.get_or_create(
+                minute=sync_crontab._orig_minute,
+                hour=sync_crontab._orig_hour,
+                day_of_month=sync_crontab._orig_day_of_month,
+                month_of_year=sync_crontab._orig_month_of_year,
+                day_of_week=sync_crontab._orig_day_of_week,
+                timezone=settings.CELERY_TIMEZONE,
+            )
+            _, created = PeriodicTask.objects.update_or_create(
                 name=task_name,
                 defaults={
                     "task": "backend.apps.organization.tasks.sync_organization",
+                    "crontab": schedule,
                     "enabled": True,
-                }
+                },
             )
-            # 更新或创建 CrontabSchedule
-            if periodic_task.crontab:
-                schedule = periodic_task.crontab
-                for key, value in schedule_params.items():
-                    setattr(schedule, key, value)
-                schedule.save()
-            else:
-                schedule = CrontabSchedule.objects.create(**schedule_params)
-                periodic_task.crontab = schedule
-                periodic_task.save()
 
-            data["sync_message"] = f"组织架构同步任务已触发，同步周期已{'创建' if created else '更新'}为每{sync_period}秒执行一次"
+            data["sync_message"] = (
+                f"The organization structure synchronization task has been triggered, "
+                f"and the synchronization period has been {'created' if created else 'updated'} to {sync_crontab}"
+            )
 
         sync_organization.delay("admin_api")
         return Response(data)
