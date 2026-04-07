@@ -55,8 +55,13 @@
                   {{ '(' + item.count + `)` }}
                 </div>
               </div>
-              <div class="single-hide extra-full-name">
-                {{ item.full_name }}
+              <div v-if="item.full_name" class="flex-center">
+                <div class="single-hide extra-full-name">
+                  {{ getFullName(item.full_name) }}
+                </div>
+                <bk-tag v-if="getFullNameLen(item.full_name) > 1">
+                  +{{ getFullNameLen(item.full_name) - 1 }}
+                </bk-tag>
               </div>
             </template>
             <IamUserDisplayName
@@ -124,8 +129,13 @@
                   :tooltip-config="{ placement: 'right-start', disabled: Boolean(item.full_name) }"
                 />
               </div>
-              <div class="single-hide extra-full-name">
-                {{ item.full_name }}
+              <div v-if="item.full_name" class="flex-center">
+                <div class="single-hide extra-full-name">
+                  {{ getFullName(item.full_name) }}
+                </div>
+                <bk-tag v-if="getFullNameLen(item.full_name) > 1">
+                  +{{ getFullNameLen(item.full_name) - 1 }}
+                </bk-tag>
               </div>
             </template>
             <IamUserDisplayName
@@ -229,19 +239,34 @@
       },
       nameType () {
         return (payload) => {
-          const { name, type, username, full_name: fullName, disabled } = payload;
+          const {
+            name = '',
+            type = '',
+            username = '',
+            full_name: fullName = '',
+            disabled = false
+          } = payload;
+
           if (disabled) {
             return this.$t(`m.common['该成员已添加']`);
           }
+          
+          // 处理分号换行的函数，存在分号则替换为 <br/>，不存在则返回原字符串
+          const formatName = (text) => text.includes(';') ? text.replace(';', '<br/>') : text;
+          
           const typeMap = {
             user: () => {
-              return fullName || username;
+              const formatted = formatName(fullName);
+              return formatted || (name ? `${username}(${name})` : username);
             },
             depart: () => {
-              return fullName || name;
+              const formatted = formatName(fullName);
+              return formatted || name;
             }
           };
-          return typeMap[type] ? typeMap[type]() : typeMap['user']();
+
+          // 不存在的类型默认走 user
+          return (typeMap[type] || typeMap.user)();
         };
       },
       selectedNode () {
@@ -443,8 +468,21 @@
         return {
           content: this.nameType(payload),
           placement: 'right-start',
+          allowHtml: true,
           disabled
         };
+      },
+
+      // 获取fullName的长度，分号分隔开算一个，返回分号分隔的数组长度
+      getFullNameLen (fullName) {
+        const text = fullName.split(';');
+        return text.length || 0;
+      },
+
+      // 存在分号则说明有换行，返回分号前的字符串，否则返回原字符串
+      getFullName (fullName) {
+        const text = fullName.split(';');
+        return this.getFullNameLen(fullName) > 1 ? text[0] : fullName;
       }
     }
   };
