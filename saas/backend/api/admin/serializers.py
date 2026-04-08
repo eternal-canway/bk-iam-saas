@@ -117,12 +117,6 @@ class AdminOrganizationSyncConfigSLZ(serializers.Serializer):
             raise serializers.ValidationError(f"invalid crontab expression: {str(e)}")
 
 
-class AdminOrganizationSyncResultSLZ(serializers.Serializer):
-    """组织架构同步结果"""
-
-    message = serializers.CharField(label="提示信息")
-
-
 class FreezeSubjectResponseSLZ(serializers.Serializer):
     type = serializers.CharField(label="SubjectType")
     id = serializers.CharField(label="SubjectID")

@@ -12,13 +12,13 @@ specific language governing permissions and limitations under the License.
 from django.conf import settings
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from backend.api.admin.constants import AdminAPIEnum
 from backend.api.admin.permissions import AdminAPIPermission
-from backend.api.admin.serializers import AdminOrganizationSyncConfigSLZ, AdminOrganizationSyncResultSLZ
+from backend.api.admin.serializers import AdminOrganizationSyncConfigSLZ
 from backend.api.authentication import ESBAuthentication
 from backend.apps.organization.tasks import sync_organization
 
@@ -33,7 +33,7 @@ class AdminOrganizationSyncViewSet(GenericViewSet):
     @swagger_auto_schema(
         operation_description="触发组织架构同步",
         request_body=AdminOrganizationSyncConfigSLZ(label="同步配置"),
-        responses={status.HTTP_200_OK: AdminOrganizationSyncResultSLZ(label="同步结果")},
+        responses={status.HTTP_200_OK: serializers.Serializer()},
         tags=["admin.organization"],
     )
     def sync(self, request, *args, **kwargs):
@@ -42,7 +42,6 @@ class AdminOrganizationSyncViewSet(GenericViewSet):
         slz.is_valid(raise_exception=True)
 
         sync_crontab = slz.validated_data.get("sync_crontab")
-        data = {"sync_message": "The organization structure synchronization task has been triggered"}
         if sync_crontab:
             task_name = "periodic_sync_organization"
             schedule, _ = CrontabSchedule.objects.get_or_create(
@@ -53,7 +52,7 @@ class AdminOrganizationSyncViewSet(GenericViewSet):
                 day_of_week=sync_crontab._orig_day_of_week,
                 timezone=settings.CELERY_TIMEZONE,
             )
-            _, created = PeriodicTask.objects.update_or_create(
+            PeriodicTask.objects.update_or_create(
                 name=task_name,
                 defaults={
                     "task": "backend.apps.organization.tasks.sync_organization",
@@ -62,10 +61,5 @@ class AdminOrganizationSyncViewSet(GenericViewSet):
                 },
             )
 
-            data["sync_message"] = (
-                f"The organization structure synchronization task has been triggered, "
-                f"and the synchronization period has been {'created' if created else 'updated'} to {sync_crontab}"
-            )
-
         sync_organization.delay("admin_api")
-        return Response(data)
+        return Response({})
