@@ -91,9 +91,10 @@
       </p>
       <transition name="toggle-slide">
         <section
-          class="iam-grading-admin-list-wrapper"
           v-show="isShowUserDropdown"
           v-bk-clickoutside="handleClickOutSide"
+          class="iam-grading-admin-list-wrapper"
+          :style="{ height: `${userHeight}px` }"
         >
           <template>
             <div class="operation">
@@ -281,6 +282,11 @@
         // 如果未获取到配置，使用默认logo
         const src = this.globalConfig.appLogo || logoSvg;
         return src;
+      },
+      userHeight () {
+        const itemHeight = 32;
+        const length = this.BK_PERSONAL_CENTER_URL ? 2 : 1;
+        return itemHeight * length;
       }
     },
     watch: {
