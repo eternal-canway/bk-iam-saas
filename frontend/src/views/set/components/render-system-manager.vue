@@ -50,7 +50,7 @@
             <bk-checkbox
               v-bk-tooltips="{
                 placement: 'left',
-                content: $t(`m.common['请先编辑成员列表']`),
+                content: $t(`m.set['请先编辑成员列表']`),
                 disabled: !row.isEdit
               }"
               :true-value="true"
