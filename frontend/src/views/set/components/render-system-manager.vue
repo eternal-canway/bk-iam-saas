@@ -28,8 +28,11 @@
                 :value="row.members"
                 :index="$index"
                 :allow-empty="true"
+                @focus="handleOpenSysEdit(row, $index, ...arguments)"
+                @blur="handleHideEdit(row, ...arguments)"
                 @on-change="handleUpdateMembers"
-                @on-empty-change="handleEmptyChange" />
+                @on-empty-change="handleEmptyChange"
+              />
             </template>
             <template v-else>
               <iam-edit-input
@@ -45,10 +48,17 @@
         <bk-table-column :label="$t(`m.set['更多权限设置']`)">
           <template slot-scope="{ row }">
             <bk-checkbox
+              v-bk-tooltips="{
+                placement: 'left',
+                content: $t(`m.common['请先编辑成员列表']`),
+                disabled: !row.isEdit
+              }"
               :true-value="true"
               :false-value="false"
               :value="row.system_permission_global_enabled"
-              @change="handleSystemEnabledChange(...arguments, row)">
+              :disabled="row.isEdit"
+              @change="handleSystemEnabledChange(...arguments, row)"
+            >
               {{ $t(`m.set['拥有该系统的所有操作权限']`) }}
             </bk-checkbox>
           </template>
@@ -114,18 +124,16 @@
           const tempArr = [];
           data.forEach(item => {
             tempArr.push({
-                            ...item,
-                            memberBackup: _.cloneDeep(item.members),
-                            isEdit: false,
-                            isError: false
+              ...item,
+              memberBackup: _.cloneDeep(item.members),
+              isEdit: false,
+              isError: false
             });
           });
           this.systemUserList.splice(0, this.systemUserList.length, ...tempArr);
           this.emptyData = formatCodeData(code, this.emptyData, this.systemUserList.length === 0);
         } catch (e) {
-          console.error(e);
-          const { code } = e;
-          this.emptyData = formatCodeData(code, this.emptyData);
+          this.emptyData = formatCodeData(e.code, this.emptyData);
           this.messageAdvancedError(e);
         } finally {
           this.$emit('data-ready', true);
@@ -158,15 +166,13 @@
         });
       },
 
-      handleSystemRtxChange (payload, row) {
-        row.isError = false;
-        row.members = [...payload];
+      handleHideEdit (row) {
+        row.isEdit = false;
       },
 
       handleSystemRtxEnter (event, payload) {
         if (event.keyCode === 13) {
           event.stopPropagation();
-                
           this.handleSystemRtxBlur(payload);
         }
       },
@@ -196,7 +202,6 @@
             this.messageSuccess(this.$t(`m.common['操作成功']`));
           }, 10);
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },
@@ -209,9 +214,6 @@
           this.$set(this.systemUserList[index], 'isEdit', false);
           this.$set(this.systemUserList[index], 'members', []);
         }
-        // if (JSON.stringify(members) === JSON.stringify(memberBackup)) {
-        //     return;
-        // }
         try {
           const params = {
             id,
@@ -222,15 +224,14 @@
           await this.fetchSystemManager();
           this.messageSuccess(this.$t(`m.common['操作成功']`));
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },
 
       handleEmptyChange (index) {
-        const users = this.systemUserList[index];
-        users.isError = false;
-        users.isEdit = false;
+        const row = this.systemUserList[index];
+        this.$set(row, 'isError', false);
+        this.$set(row, 'isEdit', false);
       },
 
       async handleSystemEnabledChange (newVal, oldVal, val, payload) {
@@ -243,7 +244,6 @@
           const message = newVal ? this.$t(`m.set['设置成功']`) : this.$t(`m.set['取消设置成功']`);
           this.messageSuccess(message);
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },

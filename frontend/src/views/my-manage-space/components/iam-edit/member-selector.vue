@@ -162,6 +162,9 @@
         this.$nextTick(() => {
           this.$refs.selector && this.$refs.selector.$el.querySelector('input').focus();
           this.handleDefaultData(this.value);
+          this.$emit('focus', {
+            [this.field]: this.displayValue
+          }, this.index);
         });
       },
 
@@ -227,6 +230,7 @@
         if (this.isAllowTrigger) {
           this.handleEmptyChange();
         }
+        this.$emit('blur');
       },
 
       // 判空校验
