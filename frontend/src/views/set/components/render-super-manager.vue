@@ -28,7 +28,7 @@
               <div
                 :class="[
                   'user-wrapper',
-                  { 'is-hover': row.canEdit && row.user[0] !== 'admin' }
+                  { 'is-hover': row.canEdit && !['bk_admin', 'admin'].includes(row.displayNames[0]) }
                 ]"
               >
                 <IamUserDisplayName :user-id="row.user" />
@@ -42,7 +42,7 @@
               <bk-checkbox
                 :true-value="true"
                 :false-value="false"
-                :disabled="row.username === 'admin'"
+                :disabled="['bk_admin', 'admin'].includes(row.displayNames[0])"
                 :value="row.system_permission_enabled"
                 @change="handleEnabledChange(...arguments, row)">
                 {{ $t(`m.set['拥有蓝鲸平台所有操作权限']`) }}
@@ -66,12 +66,12 @@
                 {{ $t(`m.common['取消']`) }}
               </bk-button>
             </template>
-            <template v-else-if="row.user[0].includes('admin')">
-              <bk-popover :content="$t(`m.set['超级管理员{name}不可删除']`, { name: row.user[0] })" placement="top">
+            <template v-else-if="['bk_admin', 'admin'].includes(row.displayNames[0])">
+              <bk-popover :content="$t(`m.set['超级管理员{name}不可删除']`, { name: row.displayNames[0] })" placement="top">
                 <bk-button
                   theme="primary"
                   text
-                  :disabled="row.user[0].includes('admin')">
+                  :disabled="['bk_admin', 'admin'].includes(row.displayNames[0])">
                   {{ $t(`m.common['删除']`) }}
                 </bk-button>
               </bk-popover>
@@ -201,18 +201,35 @@
               userBackup: [username],
               system_permission_enabled,
               isEdit: false,
-              username
+              username,
+              displayNames: []
             });
           });
           this.superUserList.splice(0, this.superUserList.length, ...tempArr);
+          this.superUserList.length > 0 && this.superUserList.forEach(item => {
+            this.handleGetDisplayName(item);
+          });
           this.emptyData = formatCodeData(code, this.emptyData, this.superUserList.length === 0);
         } catch (e) {
-          console.error(e);
-          const { code } = e;
-          this.emptyData = formatCodeData(code, this.emptyData);
+          this.emptyData = formatCodeData(e.code, this.emptyData);
           this.messageAdvancedError(e);
         } finally {
           this.$emit('data-ready', true);
+        }
+      },
+
+      // 通过bk_username反向查询display_name
+      async handleGetDisplayName (row) {
+        if (!row.user || row.user.length === 0) return;
+  
+        try {
+          const res = await this.$store.dispatch('tenantConfig/getTenantDisplayName', {
+            bk_usernames: row.user.join()
+          });
+          const results = res.data || [];
+          row.displayNames = results.map(v => v.login_name || '');
+        } catch {
+          row.displayNames = [];
         }
       },
 
@@ -291,7 +308,6 @@
             });
           }
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },
@@ -314,8 +330,8 @@
           });
           payload.userBackup = [...payload.user];
           payload.isEdit = false;
+          this.handleGetDisplayName(payload);
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },
@@ -330,8 +346,8 @@
           payload.userBackup = [...payload.user];
           payload.username = payload.user[0];
           payload.isEdit = false;
+          this.handleGetDisplayName(payload);
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },
@@ -351,7 +367,6 @@
           const message = newVal ? this.$t(`m.set['设置成功']`) : this.$t(`m.set['取消设置成功']`);
           this.messageSuccess(message);
         } catch (e) {
-          console.error(e);
           this.messageAdvancedError(e);
         }
       },
