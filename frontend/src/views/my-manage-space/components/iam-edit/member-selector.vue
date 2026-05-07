@@ -224,13 +224,15 @@
         this.displayValue = [...this.disabledValue, ...editValue];
       },
 
-      handleRtxBlur () {
+      async handleRtxBlur () {
         this.isEditable = false;
         this.handleDefaultEmpty();
         if (this.isAllowTrigger) {
-          this.handleEmptyChange();
+          await this.handleEmptyChange();
+          this.$emit('blur');
+        } else {
+          this.$emit('blur');
         }
-        this.$emit('blur');
       },
 
       // 判空校验

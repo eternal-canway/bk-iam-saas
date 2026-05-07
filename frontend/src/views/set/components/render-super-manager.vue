@@ -176,6 +176,7 @@
         this.superUserList.push({
           user: [],
           userBackup: [],
+          displayNames: [],
           system_permission_enabled: false,
           isEdit: true
         });
@@ -331,6 +332,7 @@
           payload.userBackup = [...payload.user];
           payload.isEdit = false;
           this.handleGetDisplayName(payload);
+          this.messageSuccess(this.$t(`m.info['保存成功']`));
         } catch (e) {
           this.messageAdvancedError(e);
         }
@@ -347,6 +349,7 @@
           payload.username = payload.user[0];
           payload.isEdit = false;
           this.handleGetDisplayName(payload);
+          this.messageSuccess(this.$t(`m.info['保存成功']`));
         } catch (e) {
           this.messageAdvancedError(e);
         }
