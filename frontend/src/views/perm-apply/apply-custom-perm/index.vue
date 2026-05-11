@@ -298,7 +298,7 @@
       </div>
     </smart-action>
     <!-- 用户组权限申请默认页面  -->
-    <smart-action class="applpForPermission" v-if="isNoPermissionsSet && isShowHasUserGroup">
+    <smart-action class="applyForPermission" v-if="isNoPermissionsSet && isShowHasUserGroup">
       <div class="form-tab">
         <div class="tab-item"
           :class="tabIndex === index ? 'active' : ''"
@@ -538,7 +538,7 @@
       </div>
     </smart-action>
     <!-- 无权限组时页面 -->
-    <smart-action class="noPermissionPage blueBorder" v-if="isNoPermissionsSet && !isShowHasUserGroup ">
+    <smart-action class="noPermissionPage blueBorder" v-if="isNoPermissionsSet && !isShowHasUserGroup">
       <render-horizontal-block>
         <div class="tableData">
           <bk-alert type="info">
