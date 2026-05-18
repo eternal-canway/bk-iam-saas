@@ -162,6 +162,9 @@
         this.$nextTick(() => {
           this.$refs.selector && this.$refs.selector.$el.querySelector('input').focus();
           this.handleDefaultData(this.value);
+          this.$emit('focus', {
+            [this.field]: this.displayValue
+          }, this.index);
         });
       },
 
@@ -221,11 +224,14 @@
         this.displayValue = [...this.disabledValue, ...editValue];
       },
 
-      handleRtxBlur () {
+      async handleRtxBlur () {
         this.isEditable = false;
         this.handleDefaultEmpty();
         if (this.isAllowTrigger) {
-          this.handleEmptyChange();
+          await this.handleEmptyChange();
+          this.$emit('blur');
+        } else {
+          this.$emit('blur');
         }
       },
 

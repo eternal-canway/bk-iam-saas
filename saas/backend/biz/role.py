@@ -1380,9 +1380,9 @@ def get_global_notification_config(tenant_id: str) -> Dict[str, Any]:
     return notification_config.config
 
 
-def update_periodic_permission_expire_remind_schedule(hour: int, minute: int) -> None:
+def update_periodic_permission_expire_remind_schedule(tenant_id: str, hour: int, minute: int) -> None:
     """更新周期性权限到期提醒调度"""
-    name = "periodic_permission_expire_remind"
+    name = f"periodic_permission_expire_remind_{tenant_id}"
 
     task = PeriodicTask.objects.filter(name=name).prefetch_related("crontab").first()
     if not task:
@@ -1398,7 +1398,8 @@ def update_periodic_permission_expire_remind_schedule(hour: int, minute: int) ->
         PeriodicTask.objects.create(
             crontab=schedule,
             name=name,
-            task="config.celery_app.permission_expire_remind",
+            task="backend.apps.tenant.tasks.permission_expire_remind",
+            kwargs={"tenant_id": tenant_id},
         )
         return
 
